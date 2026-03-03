@@ -38,7 +38,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 groq_client = Groq(api_key=GROQ_API_KEY)
 
 # --- RAG: ChromaDB + SentenceTransformers ---
-CHROMA_DB_PATH = os.environ.get("CHROMA_DB_PATH", "./chroma_db")
+CHROMA_DB_PATH = os.environ.get("CHROMA_DB_PATH", "./app/chroma_db")
 COLLECTION_NAME = "productos_ecommerce"
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 
@@ -193,7 +193,7 @@ def generate_vibe_response(event_type: str, product_name: str, context: str, his
     try:
         # Se fuerza un modelo rápido y barato para evitar Error 429
         chat_completion = groq_client.chat.completions.create(
-            model=os.environ.get("GROQ_MODEL", "llama3-8b-8192"), 
+            model=os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant"), 
             messages=[
                 {
                     "role": "system",
