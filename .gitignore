@@ -16,7 +16,7 @@ venv/
 .venv/
 
 # === Base de datos vectorial (se regenera con rag_builder.py) ===
-chroma_db/
+
 
 # === Logs ===
 *.log
