@@ -41,13 +41,20 @@ CHROMA_DB_PATH = os.environ.get("CHROMA_DB_PATH", "./app/chroma_db")
 COLLECTION_NAME = "productos_ecommerce"
 
 try:
-    print(f"🗄️  Conectando a ChromaDB en '{CHROMA_DB_PATH}'...")
+    print(f"🗄️ Conectando a ChromaDB en '{CHROMA_DB_PATH}'...")
     chroma_client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
-    collection = chroma_client.get_collection(name=COLLECTION_NAME)
-    print(f"✅ Colección '{COLLECTION_NAME}' cargada ({collection.count()} chunks disponibles).")
+    
+    # Intentar obtener la colección; si no existe, se define como None para evitar el crash inicial
+    try:
+        collection = chroma_client.get_collection(name=COLLECTION_NAME)
+        print(f"✅ Colección '{COLLECTION_NAME}' cargada ({collection.count()} chunks).")
+    except Exception:
+        print(f"⚠️ La colección '{COLLECTION_NAME}' no existe aún. Se requiere inicialización.")
+        collection = None 
+
 except Exception as e:
-    print(f"❌ FATAL: No se pudo conectar a ChromaDB o cargar la colección '{COLLECTION_NAME}': {e}")
-    print("   ¿Ejecutaste generate_catalogo.py primero?")
+    print(f"❌ FATAL: Error crítico al conectar con ChromaDB: {e}")
+    sys.exit(1)
 
 # --- CONFIGURACIÓN DE CORS ---
 def _parse_origins() -> list[str]:
@@ -146,7 +153,11 @@ def search_product_context(search_query: str, n_results: int = 2) -> tuple[str, 
     generic_ids = ["unknown", "size_selector", "size_button", "price_hover", "price_touch", "price_click"]
     if not search_query or search_query in generic_ids:
         return "Producto general", "El usuario está interactuando con elementos generales. Ofrecé asistencia por WhatsApp."
-
+    global collection
+    
+    if collection is None:
+        print("⚠️ Búsqueda omitida: Colección no inicializada.")
+        return search_query, "Catálogo no disponible momentáneamente."
     try:
         clean_query = search_query.replace("-", " ").replace("_", " ").strip()
 
