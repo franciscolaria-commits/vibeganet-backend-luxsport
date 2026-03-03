@@ -2,11 +2,8 @@ fastapi==0.111.0
 uvicorn==0.30.1
 slowapi==0.1.9
 pydantic==2.7.4
-numpy<2.0.0
-scikit-learn==1.4.2
-chromadb==0.5.3  
-httpx==0.27.2    
-sentence-transformers==3.0.1
+chromadb==0.5.3
+httpx==0.27.2
 groq==0.8.0
 beautifulsoup4==4.12.3
 requests==2.32.3

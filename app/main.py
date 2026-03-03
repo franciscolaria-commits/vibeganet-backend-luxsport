@@ -9,7 +9,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from groq import Groq
 import chromadb
-from sentence_transformers import SentenceTransformer
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -40,14 +39,6 @@ groq_client = Groq(api_key=GROQ_API_KEY)
 # --- RAG: ChromaDB + SentenceTransformers ---
 CHROMA_DB_PATH = os.environ.get("CHROMA_DB_PATH", "./app/chroma_db")
 COLLECTION_NAME = "productos_ecommerce"
-EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
-
-try:
-    print("🧠 Cargando modelo de embeddings...")
-    embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
-except Exception as e:
-    print(f"❌ FATAL: No se pudo cargar el modelo de embeddings '{EMBEDDING_MODEL_NAME}': {e}")
-    sys.exit(1)
 
 try:
     print(f"🗄️  Conectando a ChromaDB en '{CHROMA_DB_PATH}'...")
@@ -151,33 +142,30 @@ class SessionMemory:
 session_memory = SessionMemory()
 
 def search_product_context(search_query: str, n_results: int = 2) -> tuple[str, str]:
-    """Busca contexto relevante en ChromaDB. Evita búsquedas inútiles."""
-    
-    # Filtro de basura RAG: Si el ID es genérico del frontend, no gastamos CPU en embeddings
+    """Busca contexto usando filtros de texto de ChromaDB (sin embeddings en RAM)."""
     generic_ids = ["unknown", "size_selector", "size_button", "price_hover", "price_touch", "price_click"]
     if not search_query or search_query in generic_ids:
-        return "Producto general", "El usuario está interactuando con talles o precios de un producto. Ofrecé asistencia por WhatsApp si tiene dudas."
+        return "Producto general", "El usuario está interactuando con elementos generales. Ofrecé asistencia por WhatsApp."
 
     try:
         clean_query = search_query.replace("-", " ").replace("_", " ").strip()
-        query_embedding = embedding_model.encode(clean_query).tolist()
-        results = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=n_results,
-        )
-        documents = results.get("documents", [[]])[0]
 
+        # Buscamos coincidencias de texto en los documentos guardados
+        results = collection.get(
+            where_document={"$contains": clean_query},
+            limit=n_results
+        )
+
+        documents = results.get("documents", [])
         if not documents:
             return clean_query, "No se encontró información específica. Ofrecé atención personalizada."
 
         context = " ".join(documents)
         product_name = clean_query.title()
-        print(f"🔍 Búsqueda RAG para '{clean_query}': {len(documents)} chunks encontrados.")
         return product_name, context
     except Exception as e:
-        print(f"⚠️ Error en RAG search: {e}")
-        return search_query, "Error consultando catálogo. Mantener un tono servicial."
-
+        print(f"⚠️ Error en búsqueda: {e}")
+        return search_query, "Error consultando catálogo."
 # --- FUNCIÓN GENAI ---
 def generate_vibe_response(event_type: str, product_name: str, context: str, history: str = "") -> dict:
     """Genera respuesta JSON con Groq optimizando el modelo y el system prompt."""
