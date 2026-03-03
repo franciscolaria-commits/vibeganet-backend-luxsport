@@ -49,14 +49,14 @@ except Exception as e:
     print(f"❌ FATAL: No se pudo cargar el modelo de embeddings '{EMBEDDING_MODEL_NAME}': {e}")
     sys.exit(1)
 
-# try:
-#     print(f"🗄️  Conectando a ChromaDB en '{CHROMA_DB_PATH}'...")
-#     chroma_client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
-#     collection = chroma_client.get_collection(name=COLLECTION_NAME)
-#     print(f"✅ Colección '{COLLECTION_NAME}' cargada ({collection.count()} chunks disponibles).")
-# except Exception as e:
-#     print(f"❌ FATAL: No se pudo conectar a ChromaDB o cargar la colección '{COLLECTION_NAME}': {e}")
-#     print("   ¿Ejecutaste generate_catalogo.py primero?")
+try:
+    print(f"🗄️  Conectando a ChromaDB en '{CHROMA_DB_PATH}'...")
+    chroma_client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
+    collection = chroma_client.get_collection(name=COLLECTION_NAME)
+    print(f"✅ Colección '{COLLECTION_NAME}' cargada ({collection.count()} chunks disponibles).")
+except Exception as e:
+    print(f"❌ FATAL: No se pudo conectar a ChromaDB o cargar la colección '{COLLECTION_NAME}': {e}")
+    print("   ¿Ejecutaste generate_catalogo.py primero?")
 
 # --- CONFIGURACIÓN DE CORS ---
 def _parse_origins() -> list[str]:
